@@ -1,0 +1,89 @@
+version: '2.3'
+
+networks:
+  cassnet:
+
+volumes:
+  cassdata-master:
+  cassdata-node1:
+  cassdata-node2:
+
+services:
+  cnode-master:
+    image: cassandra:latest
+    hostname: cnode-master
+    command: /docker-entrypoint.sh cassandra -f
+    networks:
+      - cassnet
+    volumes:
+      - cassdata-master:/var/lib/cassandra
+      - ./jvm.options:/etc/cassandra/jvm.options
+    environment:
+      - CASSANDRA_CLUSTER_NAME=dev_cluster
+      - CASSANDRA_SEEDS=cnode-master
+    expose:
+      - 7000
+      - 7001
+      - 7199
+      - 9042
+      - 9160
+    ports:
+      - "9042:9042"
+      - "9160:9160"
+    ulimits:
+      memlock: -1
+      nproc: 32768
+      nofile: 100000
+    cpu_count: 1
+
+  cnode-1:
+    image: cassandra:latest
+    hostname: cnode-1
+    command: bash -c 'if [ -z "$$(ls -A /var/lib/cassandra/)" ]; then sleep 10; fi && /docker-entrypoint.sh cassandra -f'
+    networks:
+      - cassnet
+    volumes:
+      - cassdata-node1:/var/lib/cassandra
+      - ./jvm.options:/etc/cassandra/jvm.options
+    environment:
+      - CASSANDRA_CLUSTER_NAME=dev_cluster
+      - CASSANDRA_SEEDS=cnode-master
+    depends_on:
+      - cnode-master
+    expose:
+      - 7000
+      - 7001
+      - 7199
+      - 9042
+      - 9160
+    ulimits:
+      memlock: -1
+      nproc: 32768
+      nofile: 100000
+    cpu_count: 1
+
+  cnode-2:
+    image: cassandra:latest
+    hostname: cnode-2
+    command: bash -c 'if [ -z "$$(ls -A /var/lib/cassandra/)" ]; then sleep 20; fi && /docker-entrypoint.sh cassandra -f'
+    networks:
+      - cassnet
+    volumes:
+      - cassdata-node2:/var/lib/cassandra
+      - ./jvm.options:/etc/cassandra/jvm.options
+    environment:
+      - CASSANDRA_CLUSTER_NAME=dev_cluster
+      - CASSANDRA_SEEDS=cnode-master
+    depends_on:
+      - cnode-master
+    expose:
+      - 7000
+      - 7001
+      - 7199
+      - 9042
+      - 9160
+    ulimits:
+      memlock: -1
+      nproc: 32768
+      nofile: 100000
+    cpu_count: 1
